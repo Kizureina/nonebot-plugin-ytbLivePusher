@@ -15,7 +15,7 @@ async def ytb_live_pusher():
         'host': 'www.youtube.com',
     }
     bot = get_bot()
-    con = sqlite3.connect(r"/root/nonebot/Seren/seren/plugins/vtb.db")
+    con = sqlite3.connect("vtb.db")
     cur = con.cursor()
     cur.execute("SELECT * FROM ytb")
     obj = cur.fetchall()
@@ -152,7 +152,7 @@ async def ytb_live_pusher():
                 last_live = r_json['actions'][2]['updateDateTextAction']['dateText']['simpleText']
                 img_url = str('https://i.ytimg.com/vi/'+vid+'/hqdefault_live.jpg')
                 cq = "[CQ:image,file="+ img_url + ",id=40000]"
-                userid = 2932347622
+                userid = 111111111111
                 try:
                     person = r_json['actions'][0]['updateViewershipAction']['viewCount']['videoViewCountRenderer']['viewCount']['simpleText']
                     if '预定发布' in last_live:
