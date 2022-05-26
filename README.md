@@ -18,7 +18,8 @@ nb plugin install nonebot_plugin_apscheduler
 
 在`.env`中添加
 
-```#APSCHEDULER_CONFIG={"apscheduler.timezone": "Asia/Shanghai"}
+```
+    #APSCHEDULER_CONFIG={"apscheduler.timezone": "Asia/Shanghai"}
 ```
 
 在`bot.py`中添加
