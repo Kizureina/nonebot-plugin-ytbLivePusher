@@ -23,6 +23,9 @@ async def ytb_live_pusher():
         cur.execute("CREATE TABLE IF NOT EXISTS ytb(id INTEGER PRIMARY KEY,url TEXT,times INTEGER)")
         cur.execute('INSERT INTO ytb VALUES(?,?,?)',(124,'https://www.youtube.com/channel/UCGcD5iUDG8xiywZeeDxye-A',0))
         con.commit()
+        cur.execute("CREATE TABLE IF NOT EXISTS users(num INTEGER PRIMARY KEY,qqid INTEGER)")
+        cur.execute('INSERT INTO users VALUES(?,?)',(124,1111111111))
+        con.commit()
     else:
         con = sqlite3.connect("vtb.db")
         cur = con.cursor()
@@ -156,26 +159,32 @@ async def ytb_live_pusher():
                 apiurl = 'https://www.youtube.com/youtubei/v1/updated_metadata?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'
                 r = requests.post(apiurl, headers=h, data=json.dumps(data))
                 r_json = json.loads(r.text)
+                name = r_json["actions"][4]['updateDescriptionAction']['description']['runs'][5]['text']
                 title = r_json["actions"][3]['updateTitleAction']['title']['runs'][0]['text']
                 last_live = r_json['actions'][2]['updateDateTextAction']['dateText']['simpleText']
                 img_url = str('https://i.ytimg.com/vi/' + vid + '/hqdefault_live.jpg')
                 cq = "[CQ:image,file=" + img_url + ",id=40000]"
-                userid = 111111111111
-                try:
-                    person = r_json['actions'][0]['updateViewershipAction']['viewCount']['videoViewCountRenderer']['viewCount']['simpleText']
-                    if '预定发布' in last_live:
-                        cur.execute("UPDATE ytb SET times=0 WHERE url='%s'" % url)
-                        con.commit()
-                        continue
-                    else:
-                        url += "/live"
-                        await bot.send_private_msg(user_id=userid, message=f"你推的V在404开播啦!\n直播标题：{title}\n直播链接：{url}\n{last_live}\n当前同接：{person}")
-                except:
-                    if '预定发布' in last_live:
-                        cur.execute("UPDATE ytb SET times=0 WHERE url='%s'" % url)
-                        con.commit()
-                        continue
-                    else:
-                        await bot.send_private_msg(user_id=userid,message=cq)
-                        await bot.send_private_msg(user_id=userid, message=f"你推的V在404开播啦!\n直播标题：{title}\n{last_live}")
+                cur.execute("SELECT * FROM users")
+                users = cur.fetchall()
+                for i in range(len(users)):
+                    group_id = users[i][1]
+                    try:
+                        person = r_json['actions'][0]['updateViewershipAction']['viewCount']['videoViewCountRenderer']['viewCount']['simpleText']
+                        if '预定发布' in last_live:
+                            cur.execute("UPDATE ytb SET times=0 WHERE url='%s'" % url)
+                            con.commit()
+                            continue
+                        else:
+                            url += "/live"
+                            try:
+                                await bot.send_group_msg(group_id = group_id, message=f"{name}开播啦!\n直播标题：{title}\n直播链接：{url}\n{last_live}\n当前同接：{person}\n直播封面:{cq}")
+                            except:
+                                pass
+                    except:
+                        if '预定发布' in last_live:
+                            cur.execute("UPDATE ytb SET times=0 WHERE url='%s'" % url)
+                            con.commit()
+                            continue
+                        else:
+                            await bot.send_group_msg(group_id = group_id, message=f"{name}开播啦!\n直播标题：{title}\n{last_live}\n直播封面:{cq}")
 
