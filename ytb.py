@@ -8,7 +8,7 @@ import sqlite3
 scheduler = require('nonebot_plugin_apscheduler').scheduler
 
 
-@scheduler.scheduled_job('interval', minutes = 5, id = 'ytb')
+@scheduler.scheduled_job('interval', minutes = 1, id = 'ytb')
 async def ytb_live_pusher():
     h = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:96.0) Gecko/20100101 Firefox/96.0',
@@ -31,7 +31,7 @@ async def ytb_live_pusher():
         cur = con.cursor()
     cur.execute("SELECT * FROM ytb")
     obj = cur.fetchall()
-    for i in range(0, len(obj)):
+    for i in range(len(obj)):
         url = obj[i][1]
         r = requests.get(url + '/live')
         html = r.content.decode("utf-8")
@@ -159,32 +159,30 @@ async def ytb_live_pusher():
                 apiurl = 'https://www.youtube.com/youtubei/v1/updated_metadata?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'
                 r = requests.post(apiurl, headers=h, data=json.dumps(data))
                 r_json = json.loads(r.text)
-                name = r_json["actions"][4]['updateDescriptionAction']['description']['runs'][5]['text']
-                title = r_json["actions"][3]['updateTitleAction']['title']['runs'][0]['text']
-                last_live = r_json['actions'][2]['updateDateTextAction']['dateText']['simpleText']
-                img_url = str('https://i.ytimg.com/vi/' + vid + '/hqdefault_live.jpg')
-                cq = "[CQ:image,file=" + img_url + ",id=40000]"
+                person = r_json['actions'][0]['updateViewershipAction']['viewCount']['videoViewCountRenderer']['viewCount']['simpleText']
+                
                 cur.execute("SELECT * FROM users")
                 users = cur.fetchall()
                 for i in range(len(users)):
                     group_id = users[i][1]
-                    try:
-                        person = r_json['actions'][0]['updateViewershipAction']['viewCount']['videoViewCountRenderer']['viewCount']['simpleText']
-                        if '预定发布' in last_live:
-                            cur.execute("UPDATE ytb SET times=0 WHERE url='%s'" % url)
-                            con.commit()
-                            continue
-                        else:
-                            url += "/live"
-                            try:
-                                await bot.send_group_msg(group_id = group_id, message=f"{name}开播啦!\n直播标题：{title}\n直播链接：{url}\n{last_live}\n当前同接：{person}\n直播封面:{cq}")
-                            except:
-                                pass
-                    except:
-                        if '预定发布' in last_live:
-                            cur.execute("UPDATE ytb SET times=0 WHERE url='%s'" % url)
-                            con.commit()
-                            continue
-                        else:
-                            await bot.send_group_msg(group_id = group_id, message=f"{name}开播啦!\n直播标题：{title}\n{last_live}\n直播封面:{cq}")
+                    if '等待' in person:
+                        continue
+                    else:
+                        r = requests.get(url)
+                        html = r.content.decode("utf-8")
+                        soup = BeautifulSoup(html, "lxml")
+                        t = str(soup.find('title'))
+                        title = format(t.replace('<title>', ''))
+                        name = format(title.replace(' - YouTube</title>', ''))
 
+                        title = r_json["actions"][3]['updateTitleAction']['title']['runs'][0]['text']
+                        img_url = str('https://i.ytimg.com/vi/' + vid + '/hqdefault_live.jpg')
+                        cq = "[CQ:image,file=" + img_url + ",id=40000]"
+                        cur.execute("UPDATE ytb SET times=1 WHERE url='%s'" % url)
+                        con.commit()
+                        url += "/live"
+                        try:
+                            last_live = r_json['actions'][1]['updateDateTextAction']['dateText']['simpleText']
+                            await bot.send_group_msg(group_id = group_id, message=(f"{name}开播啦!\n直播标题：{title}\n直播链接：{url}\n当前同接：{person}\n{last_live}\n直播封面:\n{cq}"))
+                        except:
+                            await bot.send_group_msg(group_id = group_id, message=(f"{name}开播啦!\n直播标题：{title}\n直播链接：{url}\n当前同接：{person}\n直播封面:\n{cq}"))
